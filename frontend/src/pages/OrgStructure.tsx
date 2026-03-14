@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { users, getUserById, getManagerName, type User } from "@/data/mock";
+import { getActiveUsers, getUserById, getManagerName, type User } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -16,10 +16,11 @@ interface TreeNodeProps {
   level: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  allUsers: User[];
 }
 
-function TreeNode({ user, level, selectedId, onSelect }: TreeNodeProps) {
-  const children = users.filter((u) => u.managerId === user.id);
+function TreeNode({ user, level, selectedId, onSelect, allUsers }: TreeNodeProps) {
+  const children = allUsers.filter((u) => u.managerId === user.id);
   const isSelected = selectedId === user.id;
 
   return (
@@ -46,6 +47,7 @@ function TreeNode({ user, level, selectedId, onSelect }: TreeNodeProps) {
               level={level + 1}
               selectedId={selectedId}
               onSelect={onSelect}
+              allUsers={allUsers}
             />
           ))}
         </div>
@@ -58,6 +60,7 @@ export default function OrgStructure() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newManagerId, setNewManagerId] = useState<string>("");
 
+  const users = getActiveUsers();
   const rootUsers = users.filter((u) => u.managerId === null);
   const selectedUser = selectedId ? getUserById(selectedId) : null;
 
@@ -96,6 +99,7 @@ export default function OrgStructure() {
                   level={0}
                   selectedId={selectedId}
                   onSelect={setSelectedId}
+                  allUsers={users}
                 />
               ))}
             </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { saveActiveUsers, getActiveUsers } from "@/data/mock";
 import {
   Table,
   TableBody,
@@ -28,16 +29,125 @@ export default function UserImport() {
 
     setFileName(file.name);
 
-    // Simulated import
-    setSummary({
-      totalRows: 12,
-      created: 9,
-      errors: [
-        { row: 3, description: "Invalid email format" },
-        { row: 7, description: "Missing required field: name" },
-        { row: 11, description: "Duplicate email: john@example.com" },
-      ],
-    });
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result;
+      if (typeof text !== "string") return;
+
+      const lines = text
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (lines.length < 2) {
+        setSummary({ totalRows: 0, created: 0, errors: [{ row: 0, description: "Arquivo sem dados" }] });
+        return;
+      }
+
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      const required = ["name", "email", "role"];
+      const missing = required.filter((h) => !headers.includes(h));
+
+      if (missing.length > 0) {
+        setSummary({
+          totalRows: 0,
+          created: 0,
+          errors: [{ row: 0, description: `Colunas obrigatórias ausentes: ${missing.join(", ")}` }],
+        });
+        return;
+      }
+
+      const rows = lines.slice(1);
+      const createdUsers = [];
+      const errors: { row: number; description: string }[] = [];
+
+      const existingUsers = getActiveUsers();
+      const emailSet = new Set(existingUsers.map((u) => u.email.toLowerCase()));
+
+      for (let i = 0; i < rows.length; i += 1) {
+        const rowNumber = i + 2;
+        const columns = rows[i].split(",").map((cell) => cell.trim());
+        const rowData: Record<string, string> = {};
+
+        headers.forEach((header, index) => {
+          rowData[header] = columns[index] ?? "";
+        });
+
+        if (!rowData.name || !rowData.email || !rowData.role) {
+          errors.push({ row: rowNumber, description: "Campos obrigatórios faltando (name/email/role)." });
+          continue;
+        }
+
+        const emailLower = rowData.email.toLowerCase();
+        if (emailSet.has(emailLower)) {
+          // Se e-mail já existe, atualiza o usuário existente (não falha)
+          const existingIndex = existingUsers.findIndex((u) => u.email.toLowerCase() === emailLower);
+          if (existingIndex > -1) {
+            const original = existingUsers[existingIndex];
+            existingUsers[existingIndex] = {
+              ...original,
+              name: rowData.name,
+              role: rowData.role.toLowerCase() === "manager" ? "manager" : "member",
+              points: Number(rowData.points ?? original.points) || original.points || 0,
+              position: rowData.position ?? original.position,
+              managerId: original.managerId ?? null,
+              managerEmail: rowData.manageremail?.trim() ?? (original as any).managerEmail ?? "",
+            };
+          }
+          continue;
+        }
+
+        if (!/^\S+@\S+\.\S+$/.test(rowData.email)) {
+          errors.push({ row: rowNumber, description: "Formato de e-mail inválido." });
+          continue;
+        }
+
+        const newUser = {
+          id: `${Date.now()}-${i}`,
+          name: rowData.name,
+          email: rowData.email,
+          avatar: "",
+          role: rowData.role.toLowerCase() === "manager" ? "manager" : "member",
+          points: Number(rowData.points ?? 0) || 0,
+          institution_id: "1",
+          position: rowData.position ?? "",
+          managerId: null,
+          managerEmail: rowData.manageremail ?? "",
+        };
+
+        createdUsers.push(newUser);
+        emailSet.add(emailLower);
+      }
+
+      const finalUsers = [...existingUsers, ...createdUsers];
+
+      const emailToId = new Map(finalUsers.map((u) => [u.email.toLowerCase(), u.id]));
+      const resolvedUsers = finalUsers.map((u) => {
+        const managerEmail = ((u as any).managerEmail as string)?.trim?.().toLowerCase();
+        const managerIdFromEmail = managerEmail && emailToId.has(managerEmail) ? emailToId.get(managerEmail) ?? null : null;
+
+        const resolvedUser = {
+          ...u,
+          managerId: managerIdFromEmail ?? u.managerId ?? null,
+        } as User & { managerEmail?: string };
+
+        // remover campo temporário de importação
+        if ((resolvedUser as any).managerEmail) delete (resolvedUser as any).managerEmail;
+
+        return resolvedUser as User;
+      });
+
+      saveActiveUsers(resolvedUsers);
+
+      setSummary({
+        totalRows: rows.length,
+        created: createdUsers.length,
+        errors,
+      });
+    };
+
+    reader.readAsText(file, "UTF-8");
   };
 
   const handleDrop = (e: DragEvent) => {

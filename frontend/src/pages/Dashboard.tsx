@@ -1,19 +1,29 @@
 import { motion } from "framer-motion";
 import { KanbanSquare, Trophy, Smile, Star, TrendingUp, Users, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentUser, mockTasks, users, weeklyMoodData, monthlyProductivity } from "@/data/mock";
+import { getCurrentUser, getActiveUsers, mockTasks, weeklyMoodData, monthlyProductivity } from "@/data/mock";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 
 export default function Dashboard() {
   const currentUser = getCurrentUser();
   console.log("[Dashboard] currentUser:", currentUser);
 
+  const activeUsers = getActiveUsers();
   const isExampleUser = currentUser.email === "ana@azis.com";
+  const userPoints = Number(currentUser.points ?? 0);
+  const userName = currentUser.name?.split(" ")[0] ?? "Usuário";
 
   const stats = [
     { label: "Tarefas Concluídas", value: isExampleUser ? "23" : "0", icon: CheckCircle2, color: "text-primary" },
-    { label: "Pontos Totais", value: (isExampleUser ? currentUser.points : 0).toLocaleString(), icon: Star, color: "text-warning" },
-    { label: "Ranking", value: isExampleUser ? "#2" : "#—", icon: Trophy, color: "text-accent" },
+    { label: "Pontos Totais", value: (isExampleUser ? userPoints : 0).toLocaleString(), icon: Star, color: "text-warning" },
+    {
+      label: "Ranking",
+      value: isExampleUser
+        ? `#${Math.max(1, activeUsers.findIndex((u) => u.id === currentUser.id) + 1)}`
+        : "#—",
+      icon: Trophy,
+      color: "text-accent",
+    },
     { label: "Humor Hoje", value: isExampleUser ? "😊" : "—", icon: Smile, color: "text-mood-good" },
   ];
 
@@ -25,7 +35,7 @@ export default function Dashboard() {
     <div className="p-6 lg:p-8 space-y-8">
       <div>
         <h1 className="text-3xl font-heading font-bold text-foreground">
-          Olá, {currentUser.name.split(" ")[0]}! 👋
+          Olá, {userName}! 👋
         </h1>
         <p className="text-muted-foreground mt-1">Aqui está o resumo do seu dia</p>
       </div>
@@ -103,7 +113,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[...users]
+              {[...activeUsers]
                 .sort((a, b) => b.points - a.points)
                 .slice(0, 5)
                 .map((member, i) => (

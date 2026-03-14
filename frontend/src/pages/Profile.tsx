@@ -36,7 +36,7 @@ export default function Profile() {
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
                   <Star className="w-4 h-4 text-warning" />
-                  <span className="font-heading font-bold text-foreground">{isExampleUser ? currentUser.points : 0}</span>
+                  <span className="font-heading font-bold text-foreground">{(currentUser.points ?? 0).toLocaleString()}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">Pontos</span>
               </div>

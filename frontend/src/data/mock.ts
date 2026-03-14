@@ -114,25 +114,77 @@ export const users: User[] = [
 export const teamMembers = users;
 
 // =====================
+// PERSISTED DATA SUPPORT
+// =====================
+
+const USERS_STORAGE_KEY = "azis_users";
+
+export function getActiveUsers(): User[] {
+  try {
+    const stored = localStorage.getItem(USERS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as User[];
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.error("getActiveUsers parse error:", error);
+  }
+  return users;
+}
+
+export function saveActiveUsers(activeUsers: User[]) {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(activeUsers));
+  } catch (error) {
+    console.error("saveActiveUsers error:", error);
+  }
+}
+
+export function resetActiveUsers() {
+  localStorage.removeItem(USERS_STORAGE_KEY);
+}
+
+// =====================
 // USER FUNCTIONS
 // =====================
 
 export function getUserById(id: string): User | undefined {
-  return users.find((u) => u.id === id);
+  const currentUsers = getActiveUsers();
+  return currentUsers.find((u) => u.id === id);
 }
 
 export function getManagerName(managerId?: string | null): string {
   if (!managerId) return "Sem gestor";
 
-  const manager = users.find((u) => u.id === managerId);
+  const currentUsers = getActiveUsers();
+  const manager = currentUsers.find((u) => u.id === managerId);
   return manager ? manager.name : "Gestor não encontrado";
 }
 
 export function getCurrentUser(): User {
   try {
     const stored = localStorage.getItem("azis_user");
-    if (stored) return JSON.parse(stored);
-  } catch {}
+    if (stored) {
+      const parsed = JSON.parse(stored) as Partial<User>;
+      return {
+        ...users[0],
+        ...parsed,
+        id: parsed.id ?? users[0].id,
+        name: parsed.name ?? users[0].name,
+        email: parsed.email ?? users[0].email,
+        avatar: parsed.avatar ?? users[0].avatar,
+        role: parsed.role ?? users[0].role,
+        institution_id: parsed.institution_id ?? users[0].institution_id,
+        position: parsed.position ?? users[0].position,
+        managerId: parsed.managerId ?? users[0].managerId,
+        points: typeof parsed.points === "number" ? parsed.points : users[0].points,
+      };
+    }
+  } catch (error) {
+    console.error("getCurrentUser parse error:", error);
+  }
 
   return users[0];
 }

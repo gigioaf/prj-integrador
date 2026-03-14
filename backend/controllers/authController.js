@@ -28,7 +28,7 @@ async function register(req, res) {
 
     return res.status(201).json({
       message: 'Usuário cadastrado com sucesso',
-      user,
+      user: { ...user, points: 0 },
     })
   } catch (error) {
     console.error('register error:', error)
@@ -61,6 +61,8 @@ async function login(req, res) {
       name: user.name,
       email: user.email,
       institution: user.institution,
+      role: user.role ?? 'member',
+      points: typeof user.points === 'number' ? user.points : 0,
     }
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })

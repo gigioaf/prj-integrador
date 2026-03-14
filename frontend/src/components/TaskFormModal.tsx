@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useQuery } from "@tanstack/react-query";
+import { getActiveUsers, getCurrentUser } from "@/data/mock";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  manager_id?: number | null;
 }
 
 interface TaskFormModalProps {
@@ -55,17 +56,10 @@ interface TaskFormModalProps {
 export default function TaskFormModal({ trigger, onSubmit }: TaskFormModalProps) {
   const [open, setOpen] = useState(false);
 
-  const apiUrl = (import.meta.env.VITE_API_URL as string) || "http://localhost:3000";
-
-  const { data: users, isLoading: usersLoading, error: usersError } = useQuery({
-    queryKey: ["users"],
-    queryFn: async () => {
-      const response = await fetch(`${apiUrl}/api/users`);
-      if (!response.ok) throw new Error("Erro ao carregar usuários");
-      return response.json() as Promise<User[]>;
-    },
-    enabled: open, // Só faz fetch quando o modal está aberto
-  });
+  const currentUser = getCurrentUser();
+  const users = getActiveUsers();
+  const usersLoading = false;
+  const usersError = null;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -76,6 +70,33 @@ export default function TaskFormModal({ trigger, onSubmit }: TaskFormModalProps)
     },
   });
 
+  const getAllSubordinateIds = (allUsers: User[], managerId: string | number): string[] => {
+    const managerIdStr = managerId?.toString();
+    const direct = allUsers
+      .filter((u) => u.manager_id !== undefined && u.manager_id !== null && u.manager_id.toString() === managerIdStr)
+      .map((u) => u.id.toString());
+
+    const indirect = direct.flatMap((subId) => getAllSubordinateIds(allUsers, subId));
+    return [...new Set([...direct, ...indirect])];
+  };
+
+  const subordinates = users
+    ? users.filter((user) => {
+        if (!currentUser) return true;
+
+        const currentId = currentUser.id?.toString();
+        const isManager = currentUser.role?.toLowerCase() === "manager" || currentUser.email === "ana@azis.com";
+
+        if (isManager) {
+          const subordinateIds = getAllSubordinateIds(users, currentId);
+          return subordinateIds.includes(user.id.toString());
+        }
+
+        // For members, allow only themselves
+        return user.id.toString() === currentId;
+      })
+    : [];
+
   const handleSubmit = (data: FormData) => {
     onSubmit(data);
     form.reset();
@@ -85,8 +106,6 @@ export default function TaskFormModal({ trigger, onSubmit }: TaskFormModalProps)
       description: "A nova tarefa foi criada com sucesso.",
     });
   };
-
-  const subordinates = users?.filter((user) => user.role === "member") || [];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -9,8 +9,8 @@ import { toast } from "sonner";
 
 export default function Rewards() {
   const currentUser = getCurrentUser();
-  const isExampleUser = currentUser.email === "ana@azis.com";
-  const [points, setPoints] = useState(isExampleUser ? currentUser.points : 0);
+  const initialPoints = Number(currentUser.points ?? 0);
+  const [points, setPoints] = useState(initialPoints);
 
   const handleRedeem = (reward: typeof mockRewards[0]) => {
     if (points < reward.cost) {

@@ -6,7 +6,7 @@ import { Plus, Calendar, Star, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockTasks, Task, TaskStatus, users } from "@/data/mock";
+import { getActiveUsers, mockTasks, Task, TaskStatus } from "@/data/mock";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
@@ -88,8 +88,10 @@ export default function Kanban() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
+  const activeUsers = getActiveUsers();
+
   const handleCreateTask = (data: { title: string; description: string; assignedTo: string }) => {
-    const assignee = users.find((u) => u.id === data.assignedTo) || users[0];
+    const assignee = activeUsers.find((u) => u.id === data.assignedTo) || activeUsers[0];
     const newTask: Task = {
       id: Date.now().toString(),
       title: data.title,

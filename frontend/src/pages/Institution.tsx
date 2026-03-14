@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Users, Mail, UserMinus, UserPlus } from "lucide-react";
-import { teamMembers } from "@/data/mock";
+import { getActiveUsers } from "@/data/mock";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -65,12 +65,12 @@ export default function Institution() {
         <CardHeader>
           <CardTitle className="font-heading flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
-            Membros ({teamMembers.length})
+            Membros ({getActiveUsers().length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {teamMembers.map((member) => (
+            {getActiveUsers().map((member) => (
               <div key={member.id} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50">
                 <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center flex-shrink-0">
                   <span className="text-primary-foreground font-semibold text-sm">{member.name.charAt(0)}</span>

@@ -1,9 +1,7 @@
 import { motion } from "framer-motion";
 import { Trophy, Star, Medal, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { teamMembers } from "@/data/mock";
-
-const sorted = [...teamMembers].sort((a, b) => b.points - a.points);
+import { getActiveUsers } from "@/data/mock";
 
 const podiumColors = [
   "from-[hsl(43,100%,65%)] to-[hsl(43,100%,65%)]",
@@ -12,6 +10,8 @@ const podiumColors = [
 ];
 
 export default function Ranking() {
+  const sorted = [...getActiveUsers()].sort((a, b) => b.points - a.points);
+
   return (
     <div className="p-6 lg:p-8 space-y-8">
       <div>
